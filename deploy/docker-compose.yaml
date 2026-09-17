@@ -1,0 +1,23 @@
+# files.fifa-on.com 정적 파일 서버
+# 전제: /home/gomao/fifaon-files = 이 레포의 checkout (2분 폴링 git pull로 동기화)
+# nginx-proxy를 경유하지 않는다 — 루프백 포트로만 발행하고 cloudflared ingress가
+# http://localhost:8092 로 직결한다(scouter-files 의 8091 과 같은 방식).
+# 프로젝트명은 폴더명(deploy)이 아니라 아래 name 으로 고정 — 다른 레포의 deploy/ 와 충돌 방지.
+name: fifaon-files
+services:
+  fifaon-files:
+    image: nginx:alpine
+    container_name: fifaon-files
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8092:80"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - /home/gomao/fifaon-files:/srv/files:ro
+      # 디렉토리 단위 마운트 — 단일파일 마운트는 git pull(inode 교체) 시 갱신이 안 보임.
+      # nginx는 conf.d/*.conf만 읽으므로 이 디렉토리의 docker-compose.yaml은 무시됨.
+      - /home/gomao/fifaon-files/deploy:/etc/nginx/conf.d:ro
